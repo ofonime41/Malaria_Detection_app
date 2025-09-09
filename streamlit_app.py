@@ -8,7 +8,7 @@ from tensorflow.keras.applications.efficientnet import preprocess_input
 # Load your trained model
 @st.cache_resource  # ✅ caches model so it doesn't reload every time
 def load_model():
-    return tf.keras.models.load_model("malaria_Detection\efficientnetb0_model.keras")
+    return tf.keras.models.load_model("efficientnetb0_model.keras")
 
 model = load_model()
 
