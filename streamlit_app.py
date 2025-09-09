@@ -1,3 +1,4 @@
+# ...existing code...
 import streamlit as st
 import tensorflow as tf
 import numpy as np
@@ -5,53 +6,64 @@ from PIL import Image
 import time
 from tensorflow.keras.applications.efficientnet import preprocess_input
 # ...existing code...
-import io
 
 # Load your trained model
-@st.cache_resource # ✅ caches model so it doesn't reload every time
-
+@st.cache_resource  # ✅ caches model so it doesn't reload every time
 def load_model():
-    # try the expected filenames (add/remove names as needed)
-    candidates = ["efficientnetb0_model2.keras", "efficientnetb0_model.keras"]
-    last_exc = None
-    for fname in candidates:
-        try:
-            m = tf.keras.models.load_model(fname, compile=False)
-            return m
-        except Exception as e:
-            last_exc = e
-    # if none loaded, raise last exception to see the error
-    raise last_exc
+    # try loading the model file
+    m = tf.keras.models.load_model("efficientnetb0_model2.keras", compile=False)
+
+    # determine model's expected input shape
+    in_shape = m.input_shape
+    if isinstance(in_shape, list):
+        in_shape = in_shape[0]
+    _, h, w, c = in_shape
+
+    # if the saved model expects a single-channel input but app will provide RGB,
+    # wrap the loaded model with a small preprocessing layer that converts RGB->grayscale
+    if c == 1:
+        # build wrapper that accepts RGB and converts to grayscale for the inner model
+        new_input = tf.keras.Input(shape=(h or 224, w or 224, 3), name="rgb_input")
+        # convert RGB to grayscale (keeps a trailing channel dim)
+        x = tf.keras.layers.Lambda(lambda x: tf.image.rgb_to_grayscale(x), name="rgb_to_gray")(new_input)
+        outputs = m(x)
+        wrapper = tf.keras.Model(new_input, outputs, name="wrapped_model_rgb_to_gray")
+        return wrapper
+
+    # if the model expects 3 channels, return it as-is
+    return m
 
 model = load_model()
+# ...existing code...
 
-# debug output for deployment logs / UI
-try:
-    buf = io.StringIO()
-    model.summary(print_fn=lambda s: buf.write(s + "\n"))
-    # st.text("Loaded model summary:\n" + buf.getvalue())
-    # st.write("Model input shape:", model.input_shape)
-except Exception as e:
-    st.write("Error showing model summary:", e)
+# determine target size from model input (fallback to 224)
+_in_shape = model.input_shape
+if isinstance(_in_shape, list):
+    _in_shape = _in_shape[0]
+TARGET_HEIGHT = _in_shape[1] or 224
+TARGET_WIDTH = _in_shape[2] or 224
+# ...existing code...
+
 # Define class names (check train_generator.class_indices during training)
 class_names = ["Malaria Found", "Normal - No Malaria"]
 
 # Preprocess function
 def preprocess_image(image: Image.Image):
     image = image.convert("RGB")  # ensures 3 channels
-    img = image.resize((224, 224))
+    img = image.resize((TARGET_WIDTH, TARGET_HEIGHT))
     img_array = tf.keras.preprocessing.image.img_to_array(img)
 
-    # If model expects grayscale accidentally, collapse channels
-    if img_array.shape[-1] == 3 and model.input_shape[-1] == 1:
-        img_array = np.mean(img_array, axis=-1, keepdims=True)
+    # If inner model expects grayscale, wrapper already handles conversion.
+    # Ensure array has 3 channels before preprocess_input when appropriate.
+    if img_array.shape[-1] == 1 and model.input_shape[-1] == 3:
+        # expand single channel to 3 by repeating
+        img_array = np.repeat(img_array, 3, axis=-1)
 
     img_array = np.expand_dims(img_array, axis=0)
     img_array = preprocess_input(img_array)
     return img_array
 
-
-
+# ...existing code...
 # Streamlit UI
 st.title("🦟 Malaria Detection App")
 st.write("Upload a blood smear image to check for malaria.")
@@ -86,3 +98,4 @@ if uploaded_file is not None:
     # Display results
     st.subheader(f"Prediction: {result}")
     st.write(f"Confidence: {confidence:.2%}")
+# ...existing code...
