@@ -17,23 +17,23 @@ class_names = ["Malaria Found", "Normal - No Malaria"]
 
 # Preprocess function
 def preprocess_image(image: Image.Image):
-    # ✅ Ensure image has 3 channels (RGB)
+    # ✅ Always ensure 3 channels
     if image.mode != "RGB":
         image = image.convert("RGB")
 
-    # ✅ Resize to exactly 224x224 (EfficientNet input)
+    # ✅ Resize correctly
     img = image.resize((224, 224))
 
-    # Convert to numpy array
+    # Convert to array
     img_array = tf.keras.preprocessing.image.img_to_array(img)
 
     # Add batch dimension
     img_array = np.expand_dims(img_array, axis=0)
 
-    # Preprocess same way as during training
+    # Apply EfficientNet preprocessing
     img_array = preprocess_input(img_array)
-
     return img_array
+
 
 # Streamlit UI
 st.title("🦟 Malaria Detection App")
