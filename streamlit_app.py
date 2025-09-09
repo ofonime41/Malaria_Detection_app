@@ -17,22 +17,18 @@ class_names = ["Malaria Found", "Normal - No Malaria"]
 
 # Preprocess function
 def preprocess_image(image: Image.Image):
-    # ✅ Always ensure 3 channels
-    if image.mode != "RGB":
-        image = image.convert("RGB")
-
-    # ✅ Resize correctly
+    image = image.convert("RGB")  # ensures 3 channels
     img = image.resize((224, 224))
-
-    # Convert to array
     img_array = tf.keras.preprocessing.image.img_to_array(img)
 
-    # Add batch dimension
-    img_array = np.expand_dims(img_array, axis=0)
+    # If model expects grayscale accidentally, collapse channels
+    if img_array.shape[-1] == 3 and model.input_shape[-1] == 1:
+        img_array = np.mean(img_array, axis=-1, keepdims=True)
 
-    # Apply EfficientNet preprocessing
+    img_array = np.expand_dims(img_array, axis=0)
     img_array = preprocess_input(img_array)
     return img_array
+
 
 
 # Streamlit UI
@@ -57,6 +53,8 @@ if uploaded_file is not None:
 
     # Preprocess and predict
     img_array = preprocess_image(image)
+    st.write("Image shape before prediction:", img_array.shape)
+
     prediction = model.predict(img_array)
 
     # Pick highest confidence class
