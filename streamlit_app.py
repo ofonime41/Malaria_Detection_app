@@ -17,6 +17,9 @@ class_names = ["Malaria Found ", "Normal- No Malaria"]
 
 # Preprocess function
 def preprocess_image(image: Image.Image):
+    # Convert image to RGB to ensure 3 channels
+    if image.mode != "RGB":
+        image = image.convert("RGB")
     img = image.resize((224, 224))  # EfficientNet input size
     img_array = tf.keras.preprocessing.image.img_to_array(img)
     img_array = np.expand_dims(img_array, axis=0)
