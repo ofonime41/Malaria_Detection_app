@@ -55,3 +55,4 @@ if uploaded_file is not None:
     # Display results
     st.subheader(f"Prediction: {result}")
     st.write(f"Confidence: {confidence:.2%}")
+    
