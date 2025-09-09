@@ -4,14 +4,35 @@ import numpy as np
 from PIL import Image
 import time
 from tensorflow.keras.applications.efficientnet import preprocess_input
+# ...existing code...
+import io
 
 # Load your trained model
-@st.cache_resource  # ✅ caches model so it doesn't reload every time
+@st.cache_resource # ✅ caches model so it doesn't reload every time
+
 def load_model():
-    return tf.keras.models.load_model("efficientnetb0_model2.keras")
+    # try the expected filenames (add/remove names as needed)
+    candidates = ["efficientnetb0_model2.keras", "efficientnetb0_model.keras"]
+    last_exc = None
+    for fname in candidates:
+        try:
+            m = tf.keras.models.load_model(fname, compile=False)
+            return m
+        except Exception as e:
+            last_exc = e
+    # if none loaded, raise last exception to see the error
+    raise last_exc
 
 model = load_model()
 
+# debug output for deployment logs / UI
+try:
+    buf = io.StringIO()
+    model.summary(print_fn=lambda s: buf.write(s + "\n"))
+    # st.text("Loaded model summary:\n" + buf.getvalue())
+    # st.write("Model input shape:", model.input_shape)
+except Exception as e:
+    st.write("Error showing model summary:", e)
 # Define class names (check train_generator.class_indices during training)
 class_names = ["Malaria Found", "Normal - No Malaria"]
 
