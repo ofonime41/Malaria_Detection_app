@@ -17,9 +17,6 @@ class_names = ["Malaria Found ", "Normal- No Malaria"]
 
 # Preprocess function
 def preprocess_image(image: Image.Image):
-    # Convert image to RGB to ensure 3 channels
-    if image.mode != "RGB":
-        image = image.convert("RGB")
     img = image.resize((224, 224))  # EfficientNet input size
     img_array = tf.keras.preprocessing.image.img_to_array(img)
     img_array = np.expand_dims(img_array, axis=0)
@@ -58,4 +55,95 @@ if uploaded_file is not None:
     # Display results
     st.subheader(f"Prediction: {result}")
     st.write(f"Confidence: {confidence:.2%}")
-    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# import streamlit as st
+# import tensorflow as tf
+# import numpy as np
+# from PIL import Image
+# import time
+
+# # ------------------------------
+# # Load model once (cached)
+# # ------------------------------
+# @st.cache_resource
+# def load_model():
+#     model = tf.keras.models.load_model("efficientnetb0_model.keras")
+#     return model
+
+# model = load_model()
+# st.write("✅ Model loaded successfully!")
+
+# # ------------------------------
+# # Image Preprocessing
+# # ------------------------------
+# def preprocess_image(image: Image.Image):
+#     img = image.resize((224, 224))  # same size used in training
+#     img_array = tf.keras.preprocessing.image.img_to_array(img)
+#     img_array = np.expand_dims(img_array, axis=0)  # Add batch dimension
+#     img_array = img_array / 255.0  # normalize
+#     return img_array
+
+# # ------------------------------
+# # Streamlit UI
+# # ------------------------------
+# st.title("🧪 Malaria Detection App")
+# st.write("Upload a blood smear image and let the model predict if it has **Malaria** or is **Normal**.")
+
+# # File uploader
+# uploaded_file = st.file_uploader("📂 Upload an Image", type=["jpg", "jpeg", "png"])
+
+# if uploaded_file is not None:
+#     # Open and display uploaded image
+#     image = Image.open(uploaded_file)
+#     st.image(image, caption="Uploaded Image", width=200)
+
+#     # Progress bar
+#     # st.write("🔍 Running model prediction...")
+#     progress_bar = st.progress(0)
+
+#     # Simulate progress (for effect)
+#     for percent in range(0, 101, 20):
+#         time.sleep(0.2)  # simulate work
+#         progress_bar.progress(percent, text=f"Processing... {percent}%")
+#     # Preprocess & Predict
+#     img_array = preprocess_image(image)
+#     prediction = model.predict(img_array)
+
+#     # Since it’s binary classification (Malaria vs Normal)
+#     score = prediction[0][0]
+#     if score > 0.5:
+#         result = "🔴 Malaria"
+#         confidence = score
+#     else:
+#         result = "🟢 Normal"
+#         confidence = 1 - score
+
+#     st.subheader(f"Prediction: {result}")
+#     st.write(f"Confidence: {confidence:.2%}")
