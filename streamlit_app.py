@@ -4,15 +4,42 @@ import numpy as np
 from PIL import Image
 import time
 from tensorflow.keras.applications.efficientnet import preprocess_input
+from tensorflow.keras.models import Model
+from tensorflow.keras.layers import Input, Lambda
 
 # -------------------------------
 # Load your trained model
 # -------------------------------
 @st.cache_resource
 def load_model():
-    return tf.keras.models.load_model("efficientnetb0_model2.keras", compile=False)
+    try:
+        # Create a new input layer with correct dimensions (224x224)
+        inputs = Input(shape=(224, 224, 3), name='new_input')
+        
+        # Load the base model
+        base_model = tf.keras.models.load_model("efficientnetb0_model2.keras", compile=False)
+        
+        # Use the functional API to create new model
+        x = inputs
+        # Add a preprocessing Lambda layer to handle any necessary conversions
+        x = Lambda(lambda x: tf.cast(x, tf.float32))(x)
+        x = base_model(x)
+        
+        # Create new wrapped model
+        wrapped_model = Model(inputs=inputs, outputs=x, name="wrapped_malaria_model")
+        return wrapped_model
+        
+    except Exception as e:
+        st.error(f"Error loading model: {str(e)}")
+        raise e
 
-model = load_model()
+# Initialize model
+try:
+    model = load_model()
+    st.write("✅ Model loaded successfully!")
+except Exception as e:
+    st.error(f"❌ Failed to load model: {str(e)}")
+    st.stop()  # Stop app execution if model fails to load
 
 # -------------------------------
 # Define target size (match model)
@@ -20,6 +47,7 @@ model = load_model()
 TARGET_HEIGHT = 224
 TARGET_WIDTH = 224
 
+# ...existing code...
 # Define class names
 class_names = ["Malaria Found", "Normal - No Malaria"]
 
@@ -28,13 +56,20 @@ class_names = ["Malaria Found", "Normal - No Malaria"]
 # -------------------------------
 def preprocess_image(image: Image.Image):
     """Preprocess image for model prediction"""
-    image = image.convert("RGB")
+    # Ensure RGB
+    if image.mode != "RGB":
+        image = image.convert("RGB")
+    
+    # Resize
     img = image.resize((TARGET_WIDTH, TARGET_HEIGHT))
-
+    
+    # Convert to array and add batch dimension
     img_array = tf.keras.preprocessing.image.img_to_array(img)
     img_array = np.expand_dims(img_array, axis=0)
+    
+    # Apply EfficientNet preprocessing
     img_array = preprocess_input(img_array)
-
+    
     return img_array
 
 # -------------------------------
@@ -60,7 +95,7 @@ if uploaded_file is not None:
 
         # Preprocess and predict
         img_array = preprocess_image(image)
-        st.write("Debug - Image shape:", img_array.shape)
+        st.write("Debug - Input shape:", img_array.shape)
 
         prediction = model.predict(img_array, verbose=0)
         pred_class = np.argmax(prediction[0])
